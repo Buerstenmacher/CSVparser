@@ -27,7 +27,7 @@ size_t size(void) const  {return _values.size();}
 void push(const std::string &value) {_values.push_back(value);}
 
 bool set(const std::string &key, const std::string &value) {
-int32_t pos{0};
+ptrdiff_t pos{0};
 for (auto it = _header.begin(); it != _header.end(); it++) {
 	if (key == *it) {
 		_values[pos] = value;
@@ -44,7 +44,7 @@ throw Error("can't return this value (doesn't exist)");
 }
 
 const std::string operator[](const std::string &key) const {
-int32_t pos{0};
+ptrdiff_t pos{0};
 for (auto it = _header.begin(); it != _header.end(); it++) {
 	if (key == *it)	{return _values[pos];}
 	pos++;
@@ -182,7 +182,7 @@ while (std::getline(ss, item, _sep)) {_header.push_back(item);}
 void parseContent(void)	{
 for (auto it = ++this->_originalFile.begin(); it !=_originalFile.end(); it++)	{
 	bool quoted = false;
-	int32_t tokenStart = 0;
+	ptrdiff_t tokenStart{0};
 	Row *row = new Row(_header);
 	for (size_t i{0}; i != it->length(); i++)	{
 		if (it->at(i) == '"')	{quoted = ((quoted) ? (false) : (true));}
@@ -199,5 +199,4 @@ for (auto it = ++this->_originalFile.begin(); it !=_originalFile.end(); it++)	{
 
 };	//class Parser
 }	//namespace csv
-
 #endif //_CSVPARSER_HPP_

@@ -6,7 +6,6 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <cstddef>
 
 namespace csv {
 
@@ -28,10 +27,10 @@ size_t size(void) const  {return _values.size();}
 void push(const std::string &value) {_values.push_back(value);}
 
 bool set(const std::string &key, const std::string &value) {
-ptrdiff_t pos{0};
+size_t pos{0};
 for (auto it = _header.begin(); it != _header.end(); it++) {
 	if (key == *it) {
-		_values[pos] = value;
+		_values.at(pos) = value;
 		return true;
 		}
 	pos++;
@@ -40,14 +39,14 @@ return false;
 }
 
 const std::string operator[](size_t valuePosition) const  {
-if (valuePosition < _values.size())	{return _values[valuePosition];}
+if (valuePosition < _values.size())	{return _values.at(valuePosition);}
 throw Error("can't return this value (doesn't exist)");
 }
 
 const std::string operator[](const std::string &key) const {
-ptrdiff_t pos{0};
+size_t pos{0};
 for (auto it = _header.begin(); it != _header.end(); it++) {
-	if (key == *it)	{return _values[pos];}
+	if (key == *it)	{return _values.at(pos);}
 	pos++;
 	}
 throw Error("can't return this value (doesn't exist)");
@@ -58,7 +57,7 @@ const T getValue(size_t pos) const {
 if (pos < _values.size()) {
 	T res;
 	std::stringstream ss;
-        ss << _values[pos];
+        ss << _values.at(pos);
         ss >> res;
         return res;
 	}
@@ -70,13 +69,13 @@ friend std::ofstream& operator<<(std::ofstream& os, const Row &row);
 };//class Row  //////////////////////////////////////////////////////////////////////////////
 
 std::ostream &operator<<(std::ostream &os, const Row &row) {
-for (size_t i = 0; i != row._values.size(); i++) {os << row._values[i] << " | ";}
+for (size_t i = 0; i != row._values.size(); i++) {os << row._values.at(i) << " | ";}
 return os;
 }
 
 std::ofstream &operator<<(std::ofstream &os, const Row &row) {
 for (size_t i{0}; i != row._values.size(); i++) {
-	os << row._values[i];
+	os << row._values.at(i);
 	if (i < row._values.size() - 1)	{os << ",";}
 	}
 return os;
@@ -123,7 +122,7 @@ else {	std::istringstream stream(data);
 ~Parser(void) {for(auto it= _content.begin(); it!=_content.end(); it++)	{delete *it;}}
 
 Row& getRow(size_t rowPosition) const {
-if (rowPosition < _content.size())	{return *(_content[rowPosition]);}
+if (rowPosition < _content.size())	{return *(_content.at(rowPosition));}
 throw Error("can't return this row (doesn't exist)");
 }
 
@@ -135,7 +134,7 @@ Row& operator[](size_t rowPosition) const 	{return Parser::getRow(rowPosition);}
 
 const std::string getHeaderElement(size_t pos) const {
 if (pos >= _header.size()) {throw Error("can't return this header (doesn't exist)");}
-return _header[pos];
+return _header.at(pos);
 }
 
 bool deleteRow(size_t pos) {
@@ -175,7 +174,7 @@ if (_type == DataType::eFILE) {
 
 protected:
 void parseHeader(void) {
-std::stringstream ss(_originalFile[0]);
+std::stringstream ss(_originalFile.at(0));
 std::string item;
 while (std::getline(ss, item, _sep)) {_header.push_back(item);}
 }
@@ -183,7 +182,7 @@ while (std::getline(ss, item, _sep)) {_header.push_back(item);}
 void parseContent(void)	{
 for (auto it = ++this->_originalFile.begin(); it !=_originalFile.end(); it++)	{
 	bool quoted = false;
-	ptrdiff_t tokenStart{0};
+	intmax_t tokenStart{0};
 	Row *row = new Row(_header);
 	for (size_t i{0}; i != it->length(); i++)	{
 		if (it->at(i) == '"')	{quoted = ((quoted) ? (false) : (true));}

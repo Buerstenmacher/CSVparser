@@ -21,6 +21,19 @@ try    {
         std::cout << file.at(file.rowCount()-1) << std::endl; 			// display last line
 
         std::cout << "Filesize is: " << file.rowCount() << " x " << file.columnCount() << std::endl;
+	auto lati = file.getColumnValues("point_latitude");
+	auto longi = file.getColumnValues("point_longitude");
+	double sum_la{0};
+	double sum_lo{0};
+	for (auto& la:lati) {sum_la +=la;}
+	for (auto& lo:longi) {sum_lo +=lo;}
+	sum_la /= lati.size();
+	sum_lo /= lati.size();
+        std::cout << "Average Value of \"point_latitude\" is:  " << sum_la<< std::endl;
+        std::cout << "Average Value of \"point_longitude\" is: " << sum_lo<< std::endl;
+
+
+
 	file.sync();
 	}
 catch (csv::Error &e)	{std::cerr << e.what() << std::endl;}

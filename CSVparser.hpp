@@ -22,20 +22,16 @@ const std::vector<std::string> _header;
 std::vector<std::string> _values;
 
 public:
-Row(const std::vector<std::string> &header): _header(header),_values{} {}
+Row(const std::vector<std::string>& header): _header(header),_values{} {}
 ~Row(void) {}
 
 size_t size(void) const  {return _values.size();}
 void push(const std::string &value) {_values.push_back(value);}
 
 bool set(const std::string &key, const std::string &value) {
-for (auto it = _header.begin(); it != _header.end(); it++) {
-	if (key == *it) {
-		_values.at(std::distance(_header.begin(),it)) = value;
-		return true;
-		}
-	}
-return false;
+auto it = std::find(_header.begin(),_header.end(),key); //i think std::find is the fastest solution
+if (it != _header.end())	{_values.at(std::distance(_header.begin(),it))=value;}
+return (it==_header.end())?false:true;
 }
 
 std::string operator[](size_t valuePosition) const  {
@@ -43,13 +39,13 @@ if (valuePosition < _values.size())	{return _values.at(valuePosition);}
 throw Error("can't return this value because it doesn't exist");
 }
 
-std::string operator[](const std::string &key) const {
+std::string operator[](const std::string& key) const {
 auto it = std::find(_header.begin(),_header.end(),key); //i think std::find is the fastest solution
 if (it != _header.end())	{return _values.at(std::distance(_header.begin(),it));}
-throw Error("can't return this value because it doesn't exist");
+else	{throw Error("can't return this value because it doesn't exist");}
 }
 
-template<class keytype=size_t>
+template<class keytype=size_t>  //should be std::string or some type of unsigned integer
 std::string at(keytype vp) const	{return (*this)[vp];}
 
 template<typename T=double,class keytype>
@@ -61,24 +57,22 @@ ss >> res;
 return res;
 }
 
-friend std::ostream& operator<<(std::ostream& os, const Row &row);
-friend std::ofstream& operator<<(std::ofstream& os, const Row &row);
 };//class Row  //////////////////////////////////////////////////////////////////////////////
 
-std::ostream &operator<<(std::ostream &os, const Row &row) {
-for (auto& ref:row._values)	{os << ref << " | ";}
+std::ostream& operator<<(std::ostream& os, const Row& row) {	//no friend ;-)
+for (size_t i{0};i<row.size();++i)	{os << row.at(i) << " | ";}
 return os;
 }
 
-std::ofstream &operator<<(std::ofstream &os, const Row &row) {	//ToDo check if it works correct on '\r' and '\n' 
-for (size_t i{0}; i != row._values.size(); i++) {
-	os << row._values.at(i);
-	if (i < row._values.size() - 1)	{os << ",";}
+std::ofstream &operator<<(std::ofstream &os, const Row &row) {	//ToDo check if it works correct on '\r' and '\n'
+for (size_t i{0}; i < row.size(); i++) {
+	os << row.at(i);
+	if (i < row.size()-1)	{os << ",";}
 	}
 return os;
 }///////////////////////////////////////////////////////////////////////////////////////////
 
-enum class DataType {eFILE = 0,ePURE = 1};
+enum class DataType {eFILE = 0, ePURE = 1};
 
 class Parser {
 private:
@@ -143,11 +137,11 @@ else {	std::istringstream stream(data);
 
 const Row& getRow(size_t rowPosition) const {
 if (rowPosition < _content.size())	{return *(_content.at(rowPosition));}
-throw Error("can't return this row (doesn't exist)");
+throw Error("can't return this row because it doesn't exist");
 }
+
 const Row& operator[](size_t rowPosition) const {return Parser::getRow(rowPosition);}
 const Row& at(size_t rp) const			{return (*this)[rp];}
-
 size_t rowCount(void) const 			{return _content.size();}
 size_t size(void) const 			{return _content.size();}
 size_t columnCount(void) const 			{return _header.size();}
@@ -189,6 +183,13 @@ if (_type == DataType::eFILE) {
 	for (auto it=_content.begin(); it!=_content.end();it++)	{f << **it << std::endl;}
 	f.close();
 	}
+}
+
+template<typename T=double,class keytype>
+std::vector<T> getColumnValues(keytype pos) const {
+std::vector<T> res{};
+for (size_t i{0};i < this->size();i++) {res.push_back(at(i).getValue(pos));}
+return res;
 }
 
 };	//class Parser

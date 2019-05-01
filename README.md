@@ -11,17 +11,23 @@ CSV is a common, relatively simple file format that is widely supported by consu
 Compile and run
 ---------------
 
+```bash
 g++		example.cpp	-o example	-std=c++11			-Wno-psabi			-Weffc++	-Wall	-pedantic	&&	./example
+```
+
+```
 start compiler;	input file; 	output file; 	use at least c++ 2011 standard; dont tell us stupid warnings; 	show all other warnings and errors; 	and 	run it ;-)
+```
 
 Usage
 -----
 
 The following example shows how to make a simple usage of CSVparser.<br />
 with file /files/insurance.csv:
+-------------------------------
+example.cpp:
 
-//example.cpp:
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+```c++
 #include <iostream>
 #include "CSVparser.hpp"
 
@@ -50,8 +56,10 @@ try    {
 catch (csv::Error &e)   {std::cerr << e.what() << std::endl;}
 return 0;
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+```
 
+
+```
 Output on my RaspberryPi with Raspbian is:
 
 119736 | FL | CLAY COUNTY | 498960 | 498960 | 498960 | 498960 | 498960 | 792148.9 | 0 | 9979.2 | 0 | 0 | 30.102261 | -81.711777 | Residential | Masonry | 1 | 
@@ -66,4 +74,5 @@ Output as double:
 448094
 398149 | FL | PINELLAS COUNTY | 373488.3 | 373488.3 | 0 | 0 | 373488.3 | 596003.67 | 0 | 0 | 0 | 0 | 28.06444 | -82.77459 | Residential | Masonry | 1 | 
 Filesize is: 36634 x 18
+```
  

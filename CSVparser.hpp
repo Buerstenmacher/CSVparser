@@ -1,11 +1,12 @@
-#ifndef _CSVPARSER_HPP_
-#define _CSVPARSER_HPP_
+#ifndef CSVPARSER_H
+#define CSVPARSER_H
 
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 namespace csv {
 
@@ -27,41 +28,35 @@ size_t size(void) const  {return _values.size();}
 void push(const std::string &value) {_values.push_back(value);}
 
 bool set(const std::string &key, const std::string &value) {
-size_t pos{0};
 for (auto it = _header.begin(); it != _header.end(); it++) {
 	if (key == *it) {
-		_values.at(pos) = value;
+		_values.at(std::distance(_header.begin(),it)) = value;
 		return true;
 		}
-	pos++;
 	}
 return false;
 }
 
-const std::string operator[](size_t valuePosition) const  {
+std::string operator[](size_t valuePosition) const  {
 if (valuePosition < _values.size())	{return _values.at(valuePosition);}
-throw Error("can't return this value (doesn't exist)");
+throw Error("can't return this value because it doesn't exist");
 }
 
-const std::string operator[](const std::string &key) const {
-size_t pos{0};
-for (auto it = _header.begin(); it != _header.end(); it++) {
-	if (key == *it)	{return _values.at(pos);}
-	pos++;
-	}
-throw Error("can't return this value (doesn't exist)");
+std::string operator[](const std::string &key) const {
+for (auto it = _header.begin(); it != _header.end(); it++) {if (key == *it)	{return _values.at(std::distance(_header.begin(),it));}}
+throw Error("can't return this value because it doesn't exist");
 }
 
-template<typename T>
-const T getValue(size_t pos) const {
-if (pos < _values.size()) {
-	T res;
-	std::stringstream ss;
-        ss << _values.at(pos);
-        ss >> res;
-        return res;
-	}
-throw Error("can't return this value (doesn't exist)");
+template<class keytype=size_t>
+std::string at(keytype vp) const	{return (*this)[vp];}
+
+template<typename T=double,class keytype>
+T getValue(keytype pos) const {
+T res{};
+std::stringstream ss{};
+ss << (*this).at(pos);
+ss >> res;
+return res;
 }
 
 friend std::ostream& operator<<(std::ostream& os, const Row &row);
@@ -69,11 +64,11 @@ friend std::ofstream& operator<<(std::ofstream& os, const Row &row);
 };//class Row  //////////////////////////////////////////////////////////////////////////////
 
 std::ostream &operator<<(std::ostream &os, const Row &row) {
-for (size_t i = 0; i != row._values.size(); i++) {os << row._values.at(i) << " | ";}
+for (auto& ref:row._values)	{os << ref << " | ";}
 return os;
 }
 
-std::ofstream &operator<<(std::ofstream &os, const Row &row) {
+std::ofstream &operator<<(std::ofstream &os, const Row &row) {	//ToDo check if it works correct on '\r' and '\n' 
 for (size_t i{0}; i != row._values.size(); i++) {
 	os << row._values.at(i);
 	if (i < row._values.size() - 1)	{os << ",";}
@@ -85,17 +80,40 @@ enum DataType {eFILE = 0,ePURE = 1};
 
 class Parser {
 private:
-std::string _file;
+std::string _file;	//path and name
 const DataType _type;
-const char _sep;
-std::vector<std::string> _originalFile;
-std::vector<std::string> _header;
-std::vector<Row *> _content;
+const char _sep;	//should be ','
+std::vector<std::string> _originalFile{}, _header{};
+std::vector<Row*> _content;
+
+void parseHeader(void) {
+std::stringstream ss(_originalFile.at(0));
+std::string item;
+while (std::getline(ss, item, _sep)) {_header.push_back(item);}
+}
+
+void parseContent(void)	{
+for (auto it = ++this->_originalFile.begin(); it !=_originalFile.end(); it++)	{
+	bool quoted = false;
+	size_t tokenStart{0};
+	Row *row = new Row(_header);
+	for (size_t i{0}; i != it->length(); i++)	{
+		if (it->at(i) == '"')	{quoted = ((quoted) ? (false) : (true));}
+		else if (it->at(i) == ',' && !quoted) {
+			row->push(it->substr(tokenStart, i - tokenStart));
+			tokenStart = i + 1;
+			}
+		}//end
+	row->push(it->substr(tokenStart, it->length() - tokenStart));
+	if (row->size() != _header.size()) {throw Error("corrupted data !");}	//if value(s) missing
+	_content.push_back(row);
+	}
+}
 
 public:
 Parser(const std::string& data, const DataType& type = eFILE, char sep = ',')
 	:_file{},_type(type),_sep(sep),_originalFile{},_header{},_content{} {
-std::string line;
+std::string line{};
 if (type == eFILE) {
 	_file = data;
 	std::ifstream ifile(_file.c_str());
@@ -119,9 +137,9 @@ else {	std::istringstream stream(data);
 	}
 }
 
-~Parser(void) {for(auto it= _content.begin(); it!=_content.end(); it++)	{delete *it;}}
+~Parser(void) {for(auto ptr:_content)	{delete ptr;}}
 
-Row& getRow(size_t rowPosition) const {
+const Row& getRow(size_t rowPosition) const {
 if (rowPosition < _content.size())	{return *(_content.at(rowPosition));}
 throw Error("can't return this row (doesn't exist)");
 }
@@ -129,8 +147,9 @@ throw Error("can't return this row (doesn't exist)");
 size_t rowCount(void) const 			{return _content.size();}
 size_t columnCount(void) const 			{return _header.size();}
 std::vector<std::string> getHeader(void) const 	{return _header;}
-const std::string& getFileName(void) const 	{return _file;}
-Row& operator[](size_t rowPosition) const 	{return Parser::getRow(rowPosition);}
+std::string getFileName(void) const 		{return _file;}
+const Row& operator[](size_t rowPosition) const 	{return Parser::getRow(rowPosition);}
+const Row& at(size_t rp) const			{return (*this)[rp];}
 
 const std::string getHeaderElement(size_t pos) const {
 if (pos >= _header.size()) {throw Error("can't return this header (doesn't exist)");}
@@ -148,7 +167,7 @@ return false;
 
 bool addRow(size_t pos, const std::vector<std::string> &r) {
 Row *row = new Row(_header);
-for (auto it = r.begin(); it != r.end(); it++) {row->push(*it);}
+for (auto& ref:r) {row->push(ref);}
 if (pos <= _content.size()) {
 	_content.insert(_content.begin() + pos, row);
 	return true;
@@ -158,45 +177,17 @@ return false;
 
 void sync(void) const  {
 if (_type == DataType::eFILE) {
-	std::ofstream f;
-	f.open(_file, std::ios::out | std::ios::trunc);
-	size_t i = 0;
-	for (auto it = _header.begin(); it != _header.end(); it++) {	// header
-		f << *it;
+	std::ofstream f(_file, std::ios::out | std::ios::trunc);
+	for (size_t i{0};i != _header.size(); ++i) {	// header
+		f << _header.at(i);
 		if (i < _header.size() - 1)	{f << ",";}
 		else				{f << std::endl;}
-		i++;
 		}
 	for (auto it=_content.begin(); it!=_content.end();it++)	{f << **it << std::endl;}
 	f.close();
 	}
 }
 
-protected:
-void parseHeader(void) {
-std::stringstream ss(_originalFile.at(0));
-std::string item;
-while (std::getline(ss, item, _sep)) {_header.push_back(item);}
-}
-
-void parseContent(void)	{
-for (auto it = ++this->_originalFile.begin(); it !=_originalFile.end(); it++)	{
-	bool quoted = false;
-	intmax_t tokenStart{0};
-	Row *row = new Row(_header);
-	for (size_t i{0}; i != it->length(); i++)	{
-		if (it->at(i) == '"')	{quoted = ((quoted) ? (false) : (true));}
-		else if (it->at(i) == ',' && !quoted) {
-			row->push(it->substr(tokenStart, i - tokenStart));
-			tokenStart = i + 1;
-			}
-		}//end
-         row->push(it->substr(tokenStart, it->length() - tokenStart));
-         if (row->size() != _header.size()) {throw Error("corrupted data !");}	//if value(s) missing
-	_content.push_back(row);
-	}
-}
-
 };	//class Parser
 }	//namespace csv
-#endif //_CSVPARSER_HPP_
+#endif 	//CSVPARSER_HPP

@@ -11,7 +11,7 @@ CSV is a common, relatively simple file format that is widely supported by consu
 Compile and run
 ---------------
 
-	g++		example.cpp	-o example	-std=c++11			-Wno-psabi			-Weffc++	-Wall	-pedantic	&&	./example
+//	g++		example.cpp	-o example	-std=c++11			-Wno-psabi			-Weffc++	-Wall	-pedantic	&&	./example
 //	start compiler	input file	output file	use at least c++ 2011 standard	dont tell us stupid warnings	show all other warnings and errors	and	run it ;-)
 
 Usage

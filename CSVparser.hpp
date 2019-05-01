@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <algorithm>	//std::find
 
 namespace csv {
 
@@ -43,7 +44,8 @@ throw Error("can't return this value because it doesn't exist");
 }
 
 std::string operator[](const std::string &key) const {
-for (auto it = _header.begin(); it != _header.end(); it++) {if (key == *it)	{return _values.at(std::distance(_header.begin(),it));}}
+auto it = std::find(_header.begin(),_header.end(),key); //i think std::find is the fastest solution
+if (it != _header.end())	{return _values.at(std::distance(_header.begin(),it));}
 throw Error("can't return this value because it doesn't exist");
 }
 
@@ -76,7 +78,7 @@ for (size_t i{0}; i != row._values.size(); i++) {
 return os;
 }///////////////////////////////////////////////////////////////////////////////////////////
 
-enum DataType {eFILE = 0,ePURE = 1};
+enum class DataType {eFILE = 0,ePURE = 1};
 
 class Parser {
 private:
@@ -111,10 +113,10 @@ for (auto it = ++this->_originalFile.begin(); it !=_originalFile.end(); it++)	{
 }
 
 public:
-Parser(const std::string& data, const DataType& type = eFILE, char sep = ',')
+Parser(const std::string& data, const DataType& type = DataType::eFILE, char sep = ',')
 	:_file{},_type(type),_sep(sep),_originalFile{},_header{},_content{} {
 std::string line{};
-if (type == eFILE) {
+if (type == DataType::eFILE) {
 	_file = data;
 	std::ifstream ifile(_file.c_str());
 	if (ifile.is_open()) {
@@ -143,16 +145,17 @@ const Row& getRow(size_t rowPosition) const {
 if (rowPosition < _content.size())	{return *(_content.at(rowPosition));}
 throw Error("can't return this row (doesn't exist)");
 }
+const Row& operator[](size_t rowPosition) const {return Parser::getRow(rowPosition);}
+const Row& at(size_t rp) const			{return (*this)[rp];}
 
 size_t rowCount(void) const 			{return _content.size();}
+size_t size(void) const 			{return _content.size();}
 size_t columnCount(void) const 			{return _header.size();}
 std::vector<std::string> getHeader(void) const 	{return _header;}
 std::string getFileName(void) const 		{return _file;}
-const Row& operator[](size_t rowPosition) const 	{return Parser::getRow(rowPosition);}
-const Row& at(size_t rp) const			{return (*this)[rp];}
 
-const std::string getHeaderElement(size_t pos) const {
-if (pos >= _header.size()) {throw Error("can't return this header (doesn't exist)");}
+std::string getHeaderElement(size_t pos) const {
+if (pos >= _header.size()) {throw Error("can't return it, this header element doesn't exist");}
 return _header.at(pos);
 }
 
